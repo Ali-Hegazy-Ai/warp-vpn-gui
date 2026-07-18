@@ -1,13 +1,19 @@
 # Cloudflare WARP VPN GUI
 
+[![Release](https://img.shields.io/github/v/release/Ali-Hegazy-Ai/warp-vpn-gui)](https://github.com/Ali-Hegazy-Ai/warp-vpn-gui/releases/latest)
+[![Lint](https://github.com/Ali-Hegazy-Ai/warp-vpn-gui/actions/workflows/lint.yml/badge.svg)](https://github.com/Ali-Hegazy-Ai/warp-vpn-gui/actions/workflows/lint.yml)
+[![Build](https://github.com/Ali-Hegazy-Ai/warp-vpn-gui/actions/workflows/build-release.yml/badge.svg)](https://github.com/Ali-Hegazy-Ai/warp-vpn-gui/actions/workflows/build-release.yml)
+
 A minimal, reliable Linux desktop GUI for controlling the Cloudflare WARP
 service.  Single-file Python app with a Tkinter interface, a standalone
-PyInstaller binary, and full integration with your system's application menu.
+PyInstaller binary, a portable **AppImage**, and full integration with
+your system's application menu.
 
 ---
 
 ## Table of Contents
 
+- [Download](#download)
 - [Features](#features)
 - [Screenshots](#screenshots)
 - [Architecture](#architecture)
@@ -16,6 +22,7 @@ PyInstaller binary, and full integration with your system's application menu.
 - [Usage Guide](#usage-guide)
 - [Build from Source](#build-from-source)
 - [Desktop Integration](#desktop-integration)
+- [Release Process](#release-process)
 - [Project Structure](#project-structure)
 - [State Machine](#state-machine)
 - [Threading Model](#threading-model)
@@ -27,24 +34,42 @@ PyInstaller binary, and full integration with your system's application menu.
 
 ---
 
+## Download
+
+Get the latest release from GitHub:
+
+| Format | File | Size | How to run |
+|--------|------|------|------------|
+| **AppImage** | `Cloudflare_WARP_VPN-x86_64.AppImage` | 13 MB | `chmod +x && ./Cloudflare_WARP_VPN-x86_64.AppImage` |
+| **Source** | `warp_gui.py` | 24 KB | `python3 warp_gui.py` |
+| **Standalone binary** | Build via `./build.sh` | 13 MB | `./dist/warp-gui` |
+
+[⬇ Download latest release](https://github.com/Ali-Hegazy-Ai/warp-vpn-gui/releases/latest)
+
+The AppImage is portable — no installation, no Python, no dependencies.
+Download it, make it executable, and run it anywhere.
+
+---
+
 ## Features
 
 - **One-click connect / disconnect** — no terminal commands needed
-- **Live status display** — colored indicator + descriptive state text
+- **AppImage release** — portable, no installation, no Python required
+- **Live status display** — colored indicator (36 px) + descriptive state text
 - **Post-action verification** — polls `warp-cli` up to 18 seconds after
   every action to confirm the state actually changed
 - **Safe subprocess execution** — all `warp-cli` calls use
   `subprocess.run()` with `shell=False`; zero shell injection risk
 - **Thread-safe GUI** — background operations never block the interface;
-  results arrive via a `queue.Queue`
+  results arrive via a `queue.Queue` polled every 100 ms
 - **Automatic periodic refresh** — status is re-read every 15 seconds
 - **Event log** — in-app log with timestamps for debugging
 - **Single-instance lock** — only one copy of the app can run at a time
 - **Error resilience** — invalid JSON, missing binary, timeouts, and
   `warp-cli` errors are all caught and shown clearly
 - **Desktop integration** — installs into your system application menu
-- **Standalone binary** — 13 MB PyInstaller executable, no Python
-  dependencies at runtime
+- **Standalone binary** — PyInstaller executable, no Python at runtime
+- **CI/CD** — automatic linting and AppImage builds via GitHub Actions
 - **XDG-compliant logging** — logs go to `~/.local/state/warp-vpn/warp-gui.log`
 
 ---
@@ -70,29 +95,21 @@ log below the buttons records every status change with a timestamp.
 │  ┌─────────────┐    ┌──────────────────────────┐ │
 │  │  WarpCLI     │    │  WarpApp (Tkinter GUI)   │ │
 │  │              │    │                            │ │
-│  │  _run()      │◄──►│  _poll_queue()  (100 ms)  │ │
-│  │  _run_json() │    │  _schedule_periodic_refresh│ │
-│  │  status()    │    │  _do_action()              │ │
-│  │  connect()   │    │  _enqueue_status_refresh() │ │
-│  │  disconnect()│    │                            │ │
+│  │  status()    │◄──►│  _poll_queue()  (100 ms)  │ │
+│  │  connect()   │    │  _schedule_periodic_refresh│ │
+│  │  disconnect()│    │  _do_action()              │ │
+│  │  _run_json() │    │  _enqueue_status_refresh() │ │
 │  └──────┬───────┘    └──────────────────────────┘ │
 │         │                                          │
 │         ▼                                          │
 │  ┌──────────────┐     ┌──────────────────────┐    │
 │  │  warp-cli -j  │     │  WarpState (enum)    │    │
 │  │  (subprocess) │     │                      │    │
-│  │  shell=False  │     │  UNKNOWN             │    │
-│  │               │     │  DISCONNECTED        │    │
-│  │               │     │  CONNECTING          │    │
-│  │               │     │  CONNECTED           │    │
-│  │               │     │  DISCONNECTING       │    │
-│  │               │     │  ERROR               │    │
+│  │  shell=False  │     │  6 states            │    │
 │  └──────────────┘     └──────────────────────┘    │
 │                                                   │
 │  ┌──────────────────────────────────────────────┐ │
-│  │  Thread-safe queue.Queue                     │ │
-│  │  Message types: log, state, busy, error,     │ │
-│  │                 checked                      │ │
+│  │  Thread-safe queue.Queue (5 message types)   │ │
 │  └──────────────────────────────────────────────┘ │
 │                                                   │
 │  ┌──────────────────────────────────────────────┐ │
@@ -113,6 +130,7 @@ log below the buttons records every status change with a timestamp.
 | **Post-action polling** | `warp-cli` returns immediately; actual state change is async |
 | **fcntl lock in /tmp** | Automatically released when process exits (even on SIGKILL) |
 | **XDG_STATE_HOME for logs** | Survives PyInstaller temp extraction; follows freedesktop spec |
+| **AppImage packaging** | Portable single-file executable, no dependencies |
 
 ---
 
@@ -120,21 +138,20 @@ log below the buttons records every status change with a timestamp.
 
 ### Required
 
-- **Python 3.10+** and **tkinter** (`python3-tk` package)
-- **Cloudflare WARP client** (`warp-cli`)
+- **Cloudflare WARP client** (`warp-cli`) — only needed at runtime
 - The WARP daemon registered and running
 
 ### Installing Dependencies
 
 ```bash
 # Debian / Ubuntu / Pop!_OS
-sudo apt install python3-tk cloudflare-warp
+sudo apt install cloudflare-warp
 
 # Fedora
-sudo dnf install python3-tkinter cloudflare-warp
+sudo dnf install cloudflare-warp
 
 # Arch Linux
-sudo pacman -S tk cloudflare-warp-bin
+sudo pacman -S cloudflare-warp-bin
 ```
 
 ### First-Time WARP Setup
@@ -154,28 +171,37 @@ The GUI automatically passes `--accept-tos` on every call.
 
 ## Quick Start
 
-### Option 1 — Standalone binary (recommended)
+### Option 1 — AppImage (recommended, no install)
+
+```bash
+chmod +x Cloudflare_WARP_VPN-x86_64.AppImage
+./Cloudflare_WARP_VPN-x86_64.AppImage
+```
+
+No Python, no dependencies.  Works on any Linux distribution.
+
+### Option 2 — Standalone binary
 
 ```bash
 ./dist/warp-gui
 ```
 
-### Option 2 — Launcher script
+### Option 3 — Launcher script
 
 ```bash
 ./launcher.sh
 ```
 
-### Option 3 — Direct Python
+### Option 4 — Direct Python
 
 ```bash
 python3 warp_gui.py
 ```
 
-### Option 4 — Application menu
+### Option 5 — Application menu
 
-After running `make install` or the manual install steps below, find
-**Cloudflare WARP VPN** in your desktop's app launcher.
+After [Desktop Integration](#desktop-integration), find **Cloudflare WARP VPN**
+in your desktop's app launcher.
 
 ---
 
@@ -225,6 +251,12 @@ The log auto-scrolls as new entries appear.
 
 ## Build from Source
 
+### Prerequisites for Building
+
+- Python 3.10+
+- `python3-tk` (tkinter)
+- `pip`
+
 ### Standalone Binary (PyInstaller)
 
 ```bash
@@ -235,18 +267,36 @@ This creates a virtual environment in `/tmp/warp-venv`, installs
 PyInstaller, and builds a single-file executable at
 `dist/warp-gui` (~13 MB).
 
-The binary bundles Python, tkinter, and the app into one file.  No Python
-installation is needed to run it.
-
-### Build Process Details
+### Build AppImage
 
 ```bash
-# Manual build steps (equivalent to build.sh)
-python3 -m venv /tmp/warp-venv
-/tmp/warp-venv/bin/pip install pyinstaller
-/tmp/warp-venv/bin/pyinstaller --onefile --name warp-gui \
-    --distpath dist --workpath build --specpath build \
-    --log-level WARN warp_gui.py
+# Build the binary first
+./build.sh
+
+# Install appimagetool
+wget "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage" -O /tmp/appimagetool
+chmod +x /tmp/appimagetool
+
+# Create AppDir
+mkdir -p AppDir/usr/bin AppDir/usr/share/applications \
+         AppDir/usr/share/icons/hicolor/48x48/apps
+
+cp dist/warp-gui AppDir/usr/bin/
+cp ~/.local/share/icons/hicolor/48x48/apps/warp-vpn.png \
+   AppDir/usr/share/icons/hicolor/48x48/apps/
+cp warp-vpn.desktop AppDir/usr/share/applications/
+cp AppDir/usr/share/applications/warp-vpn.desktop AppDir/
+cp AppDir/usr/share/icons/hicolor/48x48/apps/warp-vpn.png AppDir/
+
+cat > AppDir/AppRun << 'EOF'
+#!/bin/bash
+HERE="$(dirname "$(readlink -f "$0")")"
+exec "$HERE/usr/bin/warp-gui" "$@"
+EOF
+chmod +x AppDir/AppRun
+
+# Package
+ARCH=x86_64 /tmp/appimagetool AppDir Cloudflare_WARP_VPN-x86_64.AppImage
 ```
 
 ### Verifying the Build
@@ -254,6 +304,9 @@ python3 -m venv /tmp/warp-venv
 ```bash
 file dist/warp-gui
 # → ELF 64-bit LSB executable, x86-64, dynamically linked
+
+file Cloudflare_WARP_VPN-x86_64.AppImage
+# → ELF 64-bit LSB executable, x86-64
 
 ./dist/warp-gui &
 sleep 3
@@ -265,20 +318,13 @@ kill %1
 
 ## Desktop Integration
 
-### Automatic Install
-
-The repository includes a ready-to-use desktop entry.  To install it:
+### Install from Repo
 
 ```bash
-# Copy the desktop file
 cp warp-vpn.desktop ~/.local/share/applications/
-
-# Copy the icon
 mkdir -p ~/.local/share/icons/hicolor/48x48/apps
 cp /usr/share/icons/gnome/48x48/devices/network-vpn.png \
    ~/.local/share/icons/hicolor/48x48/apps/warp-vpn.png
-
-# Refresh icon cache and desktop database
 gtk-update-icon-cache ~/.local/share/icons/hicolor/
 update-desktop-database ~/.local/share/applications/
 ```
@@ -286,32 +332,57 @@ update-desktop-database ~/.local/share/applications/
 After these steps, **Cloudflare WARP VPN** appears in your application
 menu (GNOME Activities, KDE Kickoff, XFCE Whisker menu, etc.).
 
-### Desktop Entry Details
+### Desktop Entry
 
 ```ini
 [Desktop Entry]
 Name=Cloudflare WARP VPN
 Comment=Control Cloudflare WARP connection
-Exec=/home/alih/apps/warp-vpn/launcher.sh
+Exec=/path/to/launcher.sh
 Icon=warp-vpn
 Terminal=false
 Type=Application
 Categories=Network;Utility;
 StartupNotify=true
-StartupWMClass=warp-gui
 ```
 
-**Note:** If you move the repository to a different path, update the
-`Exec=` line in `~/.local/share/applications/warp-vpn.desktop`.
-
-### Adding to Autostart (optional)
+### Adding to Autostart
 
 ```bash
-cp ~/.local/share/applications/warp-vpn.desktop \
-   ~/.config/autostart/
+cp ~/.local/share/applications/warp-vpn.desktop ~/.config/autostart/
 ```
 
-The app will launch automatically when you log in.
+---
+
+## Release Process
+
+Releases are automated via GitHub Actions.
+
+### Creating a New Release
+
+```bash
+# Tag the commit
+git tag v1.0.1
+
+# Push the tag
+git push origin v1.0.1
+```
+
+The `build-release.yml` workflow automatically:
+
+1. Checks out the code
+2. Sets up Python 3.12
+3. Installs PyInstaller
+4. Builds the standalone binary
+5. Builds the AppImage (with auto-generated icon)
+6. Uploads the AppImage to the GitHub release
+
+### CI/CD Workflows
+
+| Workflow | File | Trigger | What it does |
+|----------|------|---------|-------------|
+| **Lint** | `.github/workflows/lint.yml` | Push/PR to master | AST syntax check + `pyflakes` |
+| **Build & Release** | `.github/workflows/build-release.yml` | Tag push `v*` | Builds binary → AppImage → uploads to release |
 
 ---
 
@@ -319,13 +390,21 @@ The app will launch automatically when you log in.
 
 ```
 warp-vpn/
-├── warp_gui.py           ← Main application (716 lines)
+├── warp_gui.py                    ← Main application (716 lines)
+├── Cloudflare_WARP_VPN-x86_64.AppImage  ← Portable AppImage release
 ├── dist/
-│   └── warp-gui          ← Standalone executable (~13 MB)
-├── launcher.sh           ← Launch script (prefers binary, falls back to Python)
-├── build.sh              ← Builds the standalone executable
-├── warp-vpn.desktop      ← Desktop entry for application menu
-├── README.md             ← This file
+│   └── warp-gui                   ← Standalone executable (~13 MB)
+├── launcher.sh                    ← Launch script
+├── build.sh                       ← Builds standalone executable
+├── warp-vpn.desktop               ← Desktop entry
+├── screenshots/
+│   ├── screenshot-connected.png   ← Connected state screenshot
+│   └── screenshot-disconnected.png← Disconnected state screenshot
+├── .github/
+│   └── workflows/
+│       ├── lint.yml               ← GitHub Actions: lint
+│       └── build-release.yml      ← GitHub Actions: AppImage build + release
+├── README.md                      ← This file
 └── .gitignore
 ```
 
@@ -334,10 +413,13 @@ warp-vpn/
 | File | Role |
 |------|------|
 | `warp_gui.py` | Everything — controller, state machine, GUI, entry point |
+| `Cloudflare_WARP_VPN-x86_64.AppImage` | Portable AppImage (download from releases) |
 | `dist/warp-gui` | Pre-built standalone binary (no Python needed) |
 | `launcher.sh` | Tries binary first, falls back to `python3 warp_gui.py` |
 | `build.sh` | Creates venv, installs PyInstaller, builds binary |
 | `warp-vpn.desktop` | Freedesktop `.desktop` file for system menu integration |
+| `.github/workflows/lint.yml` | CI: AST check + pyflakes on every push |
+| `.github/workflows/build-release.yml` | CI: auto-build AppImage on tag push |
 
 ---
 
@@ -506,6 +588,9 @@ collisions on multi-user systems.
 
 ### "Error: python3-tk is not installed"
 
+Only needed when running from source.  The AppImage and binary don't
+require this.
+
 ```bash
 sudo apt install python3-tk        # Debian/Ubuntu
 sudo dnf install python3-tkinter   # Fedora
@@ -548,6 +633,18 @@ gtk-update-icon-cache ~/.local/share/icons/hicolor/
 
 If the path to the app has changed, edit
 `~/.local/share/applications/warp-vpn.desktop` and fix the `Exec=` line.
+
+### AppImage won't run
+
+```bash
+# Make sure it's executable
+chmod +x Cloudflare_WARP_VPN-x86_64.AppImage
+
+# If FUSE isn't available, try extracting and running
+./Cloudflare_WARP_VPN-x86_64.AppImage --appimage-extract
+cd squashfs-root
+./AppRun
+```
 
 ### Binary won't start
 
@@ -648,6 +745,19 @@ print('All tests passed')
 "
 ```
 
+### CI/CD Locally
+
+```bash
+# Run lint checks
+pip install pyflakes
+pyflakes warp_gui.py
+python3 -c "import ast; ast.parse(open('warp_gui.py').read())"
+
+# Build AppImage (requires appimagetool)
+./build.sh
+# ... then follow AppImage build steps above
+```
+
 ### Modifying the GUI
 
 The GUI uses `ttk.Frame`, `ttk.Label`, `ttk.Button`, and
@@ -695,6 +805,8 @@ oval — colors are defined in `WarpApp._STATE_COLORS`.
 | Close window | Clean exit; lock file removed |
 | Close window while action in progress | Worker threads terminate (daemon) |
 | Run from application menu | App appears in launcher with icon |
+| Run AppImage | App launches, no dependencies needed |
+| Auto-build on tag push | GitHub Actions builds and uploads AppImage |
 
 ---
 
