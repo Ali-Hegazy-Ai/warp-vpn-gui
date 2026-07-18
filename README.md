@@ -41,7 +41,9 @@ Get the latest release from GitHub:
 | Format | File | Size | How to run |
 |--------|------|------|------------|
 | **AppImage** | `Cloudflare_WARP_VPN-x86_64.AppImage` | 13 MB | `chmod +x && ./Cloudflare_WARP_VPN-x86_64.AppImage` |
-| **Source** | `warp_gui.py` | 24 KB | `python3 warp_gui.py` |
+| **Debian package** | `cloudflare-warp-vpn-gui_<version>_amd64.deb` | ~13 MB | `sudo apt install ./cloudflare-warp-vpn-gui_<version>_amd64.deb` |
+| **Source archive** | `warp-vpn-gui-<version>.tar.gz` | ~30 KB | `tar -xzf && cd warp-vpn-gui-<version>` |
+| **Single source file** | `warp_gui.py` | 24 KB | `python3 warp_gui.py` |
 | **Standalone binary** | Build via `./build.sh` | 13 MB | `./dist/warp-gui` |
 
 [⬇ Download latest release](https://github.com/Ali-Hegazy-Ai/warp-vpn-gui/releases/latest)
@@ -54,7 +56,7 @@ Download it, make it executable, and run it anywhere.
 ## Features
 
 - **One-click connect / disconnect** — no terminal commands needed
-- **AppImage release** — portable, no installation, no Python required
+- **AppImage + .deb releases** — portable AppImage and Debian package
 - **Live status display** — colored indicator (36 px) + descriptive state text
 - **Post-action verification** — polls `warp-cli` up to 18 seconds after
   every action to confirm the state actually changed
@@ -204,6 +206,8 @@ python3 warp_gui.py
 make run          # launch the app
 make build        # build standalone binary
 make appimage     # build AppImage (requires appimagetool)
+make deb          # build Debian package in dist/
+make source       # build source archive in dist/
 make install      # install into application menu
 make uninstall    # remove from app menu
 make clean        # remove build artifacts
@@ -389,14 +393,16 @@ The `build-release.yml` workflow automatically:
 3. Installs PyInstaller
 4. Builds the standalone binary
 5. Builds the AppImage (with auto-generated icon)
-6. Uploads the AppImage to the GitHub release
+6. Builds a `.deb` package from the standalone binary
+7. Creates a source tarball from the tagged commit
+8. Uploads AppImage + `.deb` + source archive to the GitHub release
 
 ### CI/CD Workflows
 
 | Workflow | File | Trigger | What it does |
 |----------|------|---------|-------------|
 | **Lint** | `.github/workflows/lint.yml` | Push/PR to master | AST syntax check + `pyflakes` |
-| **Build & Release** | `.github/workflows/build-release.yml` | Tag push `v*` | Builds binary → AppImage → uploads to release |
+| **Build & Release** | `.github/workflows/build-release.yml` | Tag push `v*` | Builds binary → AppImage + `.deb` + source archive → uploads all assets |
 
 ---
 

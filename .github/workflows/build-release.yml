@@ -1,4 +1,4 @@
-name: Build and Release AppImage
+name: Build and Release Artifacts
 
 on:
   push:
@@ -10,6 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -19,8 +21,18 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y python3-tk
+          sudo apt-get install -y python3-tk dpkg-dev
           pip install pyinstaller
+
+      - name: Resolve release version
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="${VERSION// /}"
+          if [ -z "$VERSION" ]; then
+            echo "Tag name must include a version (example: v1.2.3)." >&2
+            exit 1
+          fi
+          echo "RELEASE_VERSION=$VERSION" >> "$GITHUB_ENV"
 
       - name: Build standalone binary
         run: pyinstaller --onefile --name warp-gui --log-level WARN warp_gui.py
@@ -52,10 +64,38 @@ jobs:
 
           ARCH=x86_64 /tmp/appimagetool AppDir Cloudflare_WARP_VPN-x86_64.AppImage
 
+      - name: Build Debian package
+        run: |
+          ./tools/build_deb.sh "$RELEASE_VERSION" \
+            "dist/cloudflare-warp-vpn-gui_${RELEASE_VERSION}_amd64.deb"
+
+      - name: Build source archive
+        run: |
+          git archive --format=tar.gz \
+            --prefix="warp-vpn-gui-${RELEASE_VERSION}/" \
+            -o "warp-vpn-gui-${RELEASE_VERSION}.tar.gz" \
+            "$GITHUB_SHA"
+
       - name: Upload AppImage to release
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: Cloudflare_WARP_VPN-x86_64.AppImage
+          tag: ${{ github.ref }}
+          overwrite: true
+
+      - name: Upload Debian package to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: dist/cloudflare-warp-vpn-gui_${{ env.RELEASE_VERSION }}_amd64.deb
+          tag: ${{ github.ref }}
+          overwrite: true
+
+      - name: Upload source archive to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: warp-vpn-gui-${{ env.RELEASE_VERSION }}.tar.gz
           tag: ${{ github.ref }}
           overwrite: true

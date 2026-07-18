@@ -1,8 +1,11 @@
-.PHONY: all run build clean install uninstall lint
+.PHONY: all run build appimage deb source clean install uninstall lint
 
 APP = warp_gui.py
 BINARY = dist/warp-gui
 APPIMAGE = Cloudflare_WARP_VPN-x86_64.AppImage
+VERSION ?= $(shell git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo 0.0.0)
+DEB = dist/cloudflare-warp-vpn-gui_$(VERSION)_amd64.deb
+SRC_ARCHIVE = dist/warp-vpn-gui-$(VERSION).tar.gz
 DESKTOP = warp-vpn.desktop
 ICON_NAME = warp-vpn
 ICON_SRC = /usr/share/icons/gnome/48x48/devices/network-vpn.png
@@ -32,6 +35,16 @@ appimage: $(BINARY)
 	    > AppDir/AppRun
 	chmod +x AppDir/AppRun
 	ARCH=x86_64 appimagetool AppDir $(APPIMAGE)
+
+deb: $(BINARY)
+	./tools/build_deb.sh "$(VERSION)" "$(DEB)"
+
+source:
+	mkdir -p dist
+	git archive --format=tar.gz \
+		--prefix=warp-vpn-gui-$(VERSION)/ \
+		-o "$(SRC_ARCHIVE)" \
+		HEAD
 
 install: $(DESKTOP) $(ICON_DST)
 	mkdir -p $(HOME)/.local/share/applications
