@@ -198,10 +198,24 @@ No Python, no dependencies.  Works on any Linux distribution.
 python3 warp_gui.py
 ```
 
-### Option 5 — Application menu
+### Option 5 — Makefile
 
-After [Desktop Integration](#desktop-integration), find **Cloudflare WARP VPN**
-in your desktop's app launcher.
+```bash
+make run          # launch the app
+make build        # build standalone binary
+make appimage     # build AppImage (requires appimagetool)
+make install      # install into application menu
+make uninstall    # remove from app menu
+make clean        # remove build artifacts
+```
+
+### Option 6 — Desktop menu (one command)
+
+```bash
+./install.sh
+```
+
+Then find **Cloudflare WARP VPN** in your application menu.
 
 ---
 
@@ -396,6 +410,10 @@ warp-vpn/
 │   └── warp-gui                   ← Standalone executable (~13 MB)
 ├── launcher.sh                    ← Launch script
 ├── build.sh                       ← Builds standalone executable
+├── install.sh                     ← One-command desktop integration
+├── Makefile                       ← make run / build / appimage / install
+├── tools/
+│   └── gen_icon.py                ← Fallback icon generator
 ├── warp-vpn.desktop               ← Desktop entry
 ├── screenshots/
 │   ├── screenshot-connected.png   ← Connected state screenshot
@@ -417,6 +435,9 @@ warp-vpn/
 | `dist/warp-gui` | Pre-built standalone binary (no Python needed) |
 | `launcher.sh` | Tries binary first, falls back to `python3 warp_gui.py` |
 | `build.sh` | Creates venv, installs PyInstaller, builds binary |
+| `install.sh` | One-command desktop integration |
+| `Makefile` | `make run`, `make build`, `make appimage`, `make install`, etc. |
+| `tools/gen_icon.py` | Generates fallback icon as PNG |
 | `warp-vpn.desktop` | Freedesktop `.desktop` file for system menu integration |
 | `.github/workflows/lint.yml` | CI: AST check + pyflakes on every push |
 | `.github/workflows/build-release.yml` | CI: auto-build AppImage on tag push |
