@@ -75,7 +75,7 @@ def _acquire_lock() -> int:
     import fcntl
 
     path = _get_lock_file()
-    fd = os.open(path, os.O_CREAT | os.O_RDWR, 0o644)
+    fd = os.open(path, os.O_CREAT | os.O_RDWR, 0o600)
     try:
         fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except OSError:
