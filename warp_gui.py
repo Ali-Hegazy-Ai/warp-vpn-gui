@@ -45,13 +45,23 @@ REFRESH_INTERVAL_MS = 15_000
 QUEUE_POLL_MS = 100
 
 _LOCK_FILE: str | None = None
+_LOCK_DIR: str | None = None
+
+
+def _get_lock_dir() -> str:
+    global _LOCK_DIR
+    if _LOCK_DIR is None:
+        _LOCK_DIR = os.environ.get("XDG_RUNTIME_DIR", "")
+        if not _LOCK_DIR or not os.access(_LOCK_DIR, os.W_OK):
+            _LOCK_DIR = "/tmp"
+    return _LOCK_DIR
 
 
 def _get_lock_file() -> str:
     global _LOCK_FILE
     if _LOCK_FILE is None:
         uid = os.getuid()
-        _LOCK_FILE = f"/tmp/warp-vpn-gui-{uid}.lock"
+        _LOCK_FILE = f"{_get_lock_dir()}/warp-vpn-gui-{uid}.lock"
     return _LOCK_FILE
 
 
