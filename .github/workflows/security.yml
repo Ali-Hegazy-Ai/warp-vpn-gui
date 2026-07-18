@@ -33,12 +33,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install shellcheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+
       - name: Run ShellCheck
-        uses: ludeeus/action-shellcheck@master
-        with:
-          scandir: '.'
-          severity: warning
-          ignore_paths: .github build dist screenshots tools
+        run: |
+          shellcheck build.sh launcher.sh install.sh tools/build_deb.sh
 
   codeql:
     name: CodeQL (semantic code analysis)

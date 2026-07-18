@@ -1,4 +1,4 @@
-.PHONY: all run build appimage deb source clean install uninstall lint
+.PHONY: all run build appimage deb source clean install uninstall lint security
 
 APP = warp_gui.py
 BINARY = dist/warp-gui
@@ -72,6 +72,13 @@ lint:
 	python3 -c "import ast; ast.parse(open('$(APP)').read())"
 	pyflakes $(APP) 2>/dev/null || pip install pyflakes && pyflakes $(APP)
 	@echo "Lint passed."
+
+security:
+	python3 -m pip install --user --quiet bandit
+	bandit -r warp_gui.py tools/ -x tests -ll
+	command -v shellcheck >/dev/null 2>&1 || (echo "shellcheck is required. Install it with: sudo apt-get install shellcheck" && exit 1)
+	shellcheck build.sh launcher.sh install.sh tools/build_deb.sh
+	@echo "Security checks passed."
 
 clean:
 	rm -rf dist build AppDir *.spec

@@ -780,6 +780,9 @@ pip install pyflakes
 pyflakes warp_gui.py
 python3 -c "import ast; ast.parse(open('warp_gui.py').read())"
 
+# Run security checks (Bandit + ShellCheck)
+make security
+
 # Build AppImage (requires appimagetool)
 ./build.sh
 # ... then follow AppImage build steps above
