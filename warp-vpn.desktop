@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Cloudflare WARP VPN
+Comment=Control Cloudflare WARP connection
+Exec=/home/alih/apps/warp-vpn/launcher.sh
+Icon=warp-vpn
+Terminal=false
+Type=Application
+Categories=Network;Utility;
+StartupNotify=true
+StartupWMClass=warp-gui

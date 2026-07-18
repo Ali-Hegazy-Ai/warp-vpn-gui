@@ -1,0 +1,13 @@
+# PyInstaller build artifacts
+dist/
+build/
+*.spec
+__pycache__/
+*.pyc
+
+# Logs
+*.log
+
+# OS junk
+.DS_Store
+Thumbs.db
