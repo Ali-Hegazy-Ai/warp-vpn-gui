@@ -32,7 +32,12 @@ jobs:
             echo "Tag name must include a version (example: v1.2.3)." >&2
             exit 1
           fi
-          echo "RELEASE_VERSION=$VERSION" >> "$GITHUB_ENV"
+          SAFE_VERSION="$(printf '%s' "$VERSION" | sed 's/[^0-9A-Za-z.+:~-]/-/g')"
+          if [ -z "$SAFE_VERSION" ]; then
+            echo "Tag version is invalid after normalization." >&2
+            exit 1
+          fi
+          echo "RELEASE_VERSION=$SAFE_VERSION" >> "$GITHUB_ENV"
 
       - name: Build standalone binary
         run: pyinstaller --onefile --name warp-gui --log-level WARN warp_gui.py

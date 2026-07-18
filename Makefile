@@ -3,7 +3,7 @@
 APP = warp_gui.py
 BINARY = dist/warp-gui
 APPIMAGE = Cloudflare_WARP_VPN-x86_64.AppImage
-VERSION ?= $(shell git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo 0.0.0)
+VERSION ?= $(shell sh -c 'tag=$$(git describe --tags --abbrev=0 2>/dev/null || true); tag=$${tag#v}; if [ -n "$$tag" ]; then echo "$$tag"; else echo 0.0.0; fi')
 DEB = dist/cloudflare-warp-vpn-gui_$(VERSION)_amd64.deb
 SRC_ARCHIVE = dist/warp-vpn-gui-$(VERSION).tar.gz
 DESKTOP = warp-vpn.desktop
