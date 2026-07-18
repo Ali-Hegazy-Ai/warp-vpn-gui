@@ -51,10 +51,13 @@ PyInstaller binary, and full integration with your system's application menu.
 
 ## Screenshots
 
-*(The app opens a small, clean window with a status indicator, two action
-buttons, a refresh button, and an event log.  The indicator is a large
-colored circle — green for Connected, red for Disconnected, amber for
-in-progress transitions.)*
+| Connected | Disconnected |
+|-----------|-------------|
+| ![Connected](screenshots/screenshot-connected.png) | ![Disconnected](screenshots/screenshot-disconnected.png) |
+
+The status indicator is a large colored circle — green when WARP is
+active, red when disconnected, and amber during transitions.  The event
+log below the buttons records every status change with a timestamp.
 
 ---
 
@@ -180,23 +183,11 @@ After running `make install` or the manual install steps below, find
 
 ### The Main Window
 
-```
-┌──────────────────────────────────────┐
-│  Cloudflare WARP VPN                 │
-│                                      │
-│   ◉ Connected                        │
-│   Network is healthy                 │
-│  ─────────────────────────────────   │
-│   [Connect]  [Disconnect]  [Refresh] │
-│                                      │
-│   Last checked: 2s ago               │
-│  ─────────────────────────────────   │
-│   Event Log                          │
-│   14:23:01 | Connected — OK          │
-│   14:23:16 | Status refreshed: Conn… │
-│   14:23:31 | Manual refresh          │
-└──────────────────────────────────────┘
-```
+![Main window connected](screenshots/screenshot-connected.png)
+
+The window shows the current connection state with a colored indicator,
+two action buttons (Connect / Disconnect), a Refresh button, the time
+since the last status check, and a scrollable event log.
 
 ### States
 
