@@ -1,0 +1,101 @@
+name: Build and Release AppImage
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-tk
+          pip install pyinstaller
+
+      - name: Build standalone binary
+        run: pyinstaller --onefile --name warp-gui --log-level WARN warp_gui.py
+
+      - name: Build AppImage
+        run: |
+          mkdir -p AppDir/usr/bin AppDir/usr/share/applications \
+                   AppDir/usr/share/icons/hicolor/48x48/apps
+
+          # Copy binary
+          cp dist/warp-gui AppDir/usr/bin/
+
+          # Copy icon from system or create placeholder
+          # Using a built-in fallback icon
+          python3 -c "
+import base64, zlib
+# Create a simple WARP-style icon: green circle on dark bg
+from struct import pack
+def create_png(filename, size=48):
+    def chunk(ctype, data):
+        c = ctype + data
+        return pack('>I', len(data)) + c + pack('>I', zlib.crc32(c) & 0xffffffff)
+    sig = b'\\x89PNG\\r\\n\\x1a\\n'
+    ihdr = chunk(b'IHDR', pack('>IIBBBBB', size, size, 8, 2, 0, 0, 0))
+    raw = b''
+    green = b'\\x28\\xa7\\x45'
+    for y in range(size):
+        raw += b'\\x00'
+        for x in range(size):
+            dx, dy = x - size//2, y - size//2
+            if dx*dx + dy*dy < (size//2 - 2)**2:
+                raw += green
+            else:
+                raw += b'\\xf0\\xf0\\xf0'
+    idat = chunk(b'IDAT', zlib.compress(raw))
+    iend = chunk(b'IEND', b'')
+    with open(filename, 'wb') as f:
+        f.write(sig + ihdr + idat + iend)
+create_png('AppDir/usr/share/icons/hicolor/48x48/apps/warp-vpn.png')
+          "
+
+          # Desktop entry
+          cat > AppDir/usr/share/applications/warp-vpn.desktop << 'EOF'
+[Desktop Entry]
+Name=Cloudflare WARP VPN
+Comment=Control Cloudflare WARP connection
+Exec=warp-gui
+Icon=warp-vpn
+Terminal=false
+Type=Application
+Categories=Network;Utility;
+StartupNotify=true
+EOF
+
+          cp AppDir/usr/share/applications/warp-vpn.desktop AppDir/
+          cp AppDir/usr/share/icons/hicolor/48x48/apps/warp-vpn.png AppDir/
+
+          # AppRun
+          cat > AppDir/AppRun << 'EOF'
+#!/bin/bash
+HERE="$(dirname "$(readlink -f "$0")")"
+exec "$HERE/usr/bin/warp-gui" "$@"
+EOF
+          chmod +x AppDir/AppRun
+
+          # Download appimagetool
+          wget -q "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage" -O /tmp/appimagetool
+          chmod +x /tmp/appimagetool
+
+          ARCH=x86_64 /tmp/appimagetool AppDir Cloudflare_WARP_VPN-x86_64.AppImage
+
+      - name: Upload AppImage to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: Cloudflare_WARP_VPN-x86_64.AppImage
+          tag: ${{ github.ref }}
+          overwrite: true
