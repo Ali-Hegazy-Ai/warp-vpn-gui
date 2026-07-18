@@ -25,6 +25,7 @@ import os
 import queue
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 from datetime import datetime, timezone
@@ -53,7 +54,7 @@ def _get_lock_dir() -> str:
     if _LOCK_DIR is None:
         _LOCK_DIR = os.environ.get("XDG_RUNTIME_DIR", "")
         if not _LOCK_DIR or not os.access(_LOCK_DIR, os.W_OK):
-            _LOCK_DIR = "/tmp"
+            _LOCK_DIR = tempfile.gettempdir()
     return _LOCK_DIR
 
 
